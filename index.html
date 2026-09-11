@@ -86,8 +86,8 @@
                             <input type="text" id="nombre-estudiante" placeholder="Nombre completo del estudiante" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre o Referencia de la Imagen</label>
-                            <input type="text" id="foto-estudiante-ref" placeholder="Ej: foto_juan_perez.jpg o Foto_01" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre del Archivo de Imagen (en carpeta img/)</label>
+                            <input type="text" id="foto-estudiante-ref" placeholder="Ej: foto1.jpg o alumno_juan.png" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
                         </div>
                         <button onclick="agregarEstudiante()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg transition shadow">
                             <i class="fa-solid fa-floppy-disk"></i> Guardar Estudiante
@@ -101,7 +101,7 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="border-b border-slate-200 text-slate-500 text-sm">
-                                    <th class="py-3 px-4">Ref. Imagen</th>
+                                    <th class="py-3 px-4">Foto</th>
                                     <th class="py-3 px-4">Nombre</th>
                                     <th class="py-3 px-4 text-right">Acciones</th>
                                 </tr>
@@ -142,6 +142,7 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="border-b border-slate-200 text-slate-500 text-sm">
+                                    <th class="py-3 px-4">Foto</th>
                                     <th class="py-3 px-4">Estudiante</th>
                                     <th class="py-3 px-4 text-center">Estado</th>
                                 </tr>
@@ -354,11 +355,13 @@
             if(total) total.innerText = estudiantes.length;
             if(!tbody) return;
             tbody.innerHTML = estudiantes.map(e => `
-                <tr class="border-b border-slate-100">
-                    <td class="py-3 px-4"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded text-xs font-mono border">${e.foto}</span></td>
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-3 px-4">
+                        <img src="img/${e.foto}" alt="${e.nombre}" class="w-10 h-10 object-cover rounded-full border border-slate-200 shadow-sm" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(e.nombre)}&background=e0e7ff&color=3730a3';">
+                    </td>
                     <td class="py-3 px-4 font-medium text-slate-700">${e.nombre}</td>
                     <td class="py-3 px-4 text-right">
-                        <button onclick="eliminarEstudiante(${e.id})" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="eliminarEstudiante(${e.id})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -368,7 +371,10 @@
             const tbody = document.getElementById('tabla-asistencia-body');
             if(!tbody) return;
             tbody.innerHTML = estudiantes.map(e => `
-                <tr class="border-b border-slate-100">
+                <tr class="border-b border-slate-100 hover:bg-slate-50">
+                    <td class="py-3 px-4">
+                        <img src="img/${e.foto}" alt="${e.nombre}" class="w-8 h-8 object-cover rounded-full border border-slate-200 shadow-sm" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(e.nombre)}&background=e0e7ff&color=3730a3';">
+                    </td>
                     <td class="py-3 px-4 font-medium text-slate-700">${e.nombre}</td>
                     <td class="py-3 px-4 text-center">
                         <input type="checkbox" data-id="${e.id}" class="check-asistencia w-5 h-5 text-indigo-600 rounded" checked>
