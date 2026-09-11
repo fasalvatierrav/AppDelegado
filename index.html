@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <!-- Panel Principal (Oculto antes de autenticar) -->
+    <!-- Panel Principal -->
     <div id="panel-principal" class="hidden flex-1 flex flex-col">
         <!-- Header -->
         <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
@@ -54,9 +54,9 @@
                 <!-- Navegación por pestañas -->
                 <nav class="flex items-center gap-2">
                     <div id="nav-tabs" class="flex gap-2 bg-indigo-700 p-1 rounded-lg">
-                        <button onclick="cambiarTab('estudiantes')" id="btn-estudiantes" class="solo-admin px-3 py-1.5 rounded-md font-medium text-xs bg-white text-indigo-600 shadow transition">Estudiantes & Cursos</button>
-                        <button onclick="cambiarTab('asistencia')" id="btn-asistencia" class="px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Asistencia</button>
-                        <button onclick="cambiarTab('grupos')" id="btn-grupos" class="px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Grupos</button>
+                        <button onclick="cambiarTab('estudiantes')" id="btn-tab-estudiantes" class="solo-admin px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Estudiantes & Cursos</button>
+                        <button onclick="cambiarTab('asistencia')" id="btn-tab-asistencia" class="px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Asistencia</button>
+                        <button onclick="cambiarTab('grupos')" id="btn-tab-grupos" class="px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Grupos</button>
                     </div>
                     <button onclick="cerrarSesion()" title="Cerrar Sesión" class="bg-indigo-800 hover:bg-indigo-900 text-white p-2 rounded-lg text-xs transition">
                         <i class="fa-solid fa-power-off"></i>
@@ -67,7 +67,7 @@
 
         <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-1">
 
-            <!-- SECCIÓN 1: ESTUDIANTES Y CURSOS (EXCLUSIVO ADMIN) -->
+            <!-- SECCIÓN 1: ESTUDIANTES Y CURSOS -->
             <section id="tab-estudiantes" class="solo-admin space-y-6">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
                     <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-book-open"></i> Gestión de Cursos / Asignaturas</h2>
@@ -114,7 +114,6 @@
 
             <!-- SECCIÓN 2: ASISTENCIA -->
             <section id="tab-asistencia" class="space-y-6">
-                <!-- VISTA ADMIN: Lista completa de asistencia -->
                 <div class="solo-admin bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
@@ -152,7 +151,6 @@
                     </div>
                 </div>
 
-                <!-- VISTA ESTUDIANTE: Auto-registro de asistencia -->
                 <div class="solo-estudiante bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-user-check"></i> Registrar Mi Asistencia</h2>
                     <p class="text-sm text-slate-500">Marque la casilla y confirme su asistencia para la sesión de hoy.</p>
@@ -175,31 +173,56 @@
 
             <!-- SECCIÓN 3: GRUPOS -->
             <section id="tab-grupos" class="space-y-6">
-                <!-- VISTA ADMIN: Generador de grupos -->
-                <div class="solo-admin bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                    <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-object-group"></i> Generador de Grupos</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Curso</label>
-                            <select id="grupo-curso-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                <!-- VISTA ADMIN: Opciones de Generación/Creación -->
+                <div class="solo-admin bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
+                    <div>
+                        <h2 class="text-lg font-semibold text-indigo-900 mb-4"><i class="fa-solid fa-object-group"></i> Generador Aleatorio de Grupos</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Curso</label>
+                                <select id="grupo-curso-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Mínimo integrantes</label>
+                                <input type="number" id="min-integrantes" value="2" min="1" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Máximo integrantes</label>
+                                <input type="number" id="max-integrantes" value="4" min="1" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none text-sm">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Mínimo integrantes</label>
-                            <input type="number" id="min-integrantes" value="2" min="1" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Máximo integrantes</label>
-                            <input type="number" id="max-integrantes" value="4" min="1" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
-                        </div>
+                        <button onclick="generarGruposAleatorios()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg transition shadow text-sm">
+                            Generar y Guardar Grupos
+                        </button>
                     </div>
-                    <button onclick="generarGruposAleatorios()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg transition shadow">
-                        Generar y Guardar Grupos
-                    </button>
+
+                    <hr class="border-slate-200">
+
+                    <div>
+                        <h2 class="text-lg font-semibold text-indigo-900 mb-2"><i class="fa-solid fa-pen-to-square"></i> Crear Grupo Manualmente</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Curso</label>
+                                <select id="manual-grupo-curso-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre del Grupo</label>
+                                <input type="text" id="manual-nombre-grupo" placeholder="Ej. Grupo Alpha" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Integrantes (separados por coma)</label>
+                                <input type="text" id="manual-integrantes-grupo" placeholder="Ej. Juan Pérez, María Gómez" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none text-sm">
+                            </div>
+                        </div>
+                        <button onclick="crearGrupoManual()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium px-6 py-2 rounded-lg transition shadow text-sm">
+                            Guardar Grupo Manual
+                        </button>
+                    </div>
                 </div>
 
-                <!-- CONTENEDOR RESULTADOS (Admin ve todos, Estudiante solo el suyo) -->
+                <!-- CONTENEDOR RESULTADOS -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="text-lg font-semibold text-indigo-900 mb-4"><i class="fa-solid fa-users-rectangle"></i> Grupos Asignados</h2>
+                    <h2 class="text-lg font-semibold text-indigo-900 mb-4"><i class="fa-solid fa-users-rectangle"></i> Grupos Registrados</h2>
                     <div id="resultado-grupos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
             </section>
@@ -212,7 +235,7 @@
         let estudiantes = [];
         let cursos = ['General'];
 
-        // --- AUTENTICACIÓN ---
+        // AUTENTICACIÓN
         function ejecutarLogin(e) {
             e.preventDefault();
             const user = document.getElementById('login-user').value.trim();
@@ -232,9 +255,7 @@
                     })
                     .apiLogin(user, pass);
             } else {
-                // Modo simulado local
-                usuarioSesion = { usuario: user, nombreEstudiante: user, rol: user === 'admin' ? 'Admin' : 'Estudiante' };
-                iniciarPanel();
+                alert("Atención: google.script.run no está disponible. Ejecute este archivo publicado como Aplicación Web en Google Apps Script.");
             }
         }
 
@@ -253,11 +274,11 @@
                 document.querySelectorAll('.solo-admin').forEach(el => el.classList.add('hidden'));
                 document.querySelectorAll('.solo-estudiante').forEach(el => el.classList.remove('hidden'));
                 cambiarTab('asistencia');
-                cargarGrupoPropioEstudiante();
             }
 
             cargarEstudiantesDesdeSheets();
             cargarCursos();
+            cargarGrupos();
             fijarHoraActual();
         }
 
@@ -267,7 +288,29 @@
             document.getElementById('pantalla-login').classList.remove('hidden');
         }
 
-        // --- CURSOS (GOOGLE SHEETS) ---
+        // PESTAÑAS Y NAVEGACIÓN
+        function cambiarTab(id) {
+            ['estudiantes', 'asistencia', 'grupos'].forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (sec) sec.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('bg-white', 'text-indigo-600', 'shadow');
+                    btn.classList.add('text-white', 'hover:bg-indigo-600');
+                }
+            });
+
+            const targetSec = document.getElementById(`tab-${id}`);
+            const targetBtn = document.getElementById(`btn-tab-${id}`);
+
+            if (targetSec) targetSec.classList.remove('hidden');
+            if (targetBtn) {
+                targetBtn.classList.remove('text-white', 'hover:bg-indigo-600');
+                targetBtn.classList.add('bg-white', 'text-indigo-600', 'shadow');
+            }
+        }
+
+        // CURSOS
         function cargarCursos() {
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
@@ -276,8 +319,6 @@
                         renderCursos();
                     })
                     .apiObtenerCursos();
-            } else {
-                renderCursos();
             }
         }
 
@@ -286,8 +327,6 @@
             const nuevoCurso = input.value.trim();
             if (!nuevoCurso) return alert("Ingrese el nombre del curso.");
 
-            if (cursos.includes(nuevoCurso)) return alert("El curso ya existe.");
-
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler(() => {
@@ -295,10 +334,6 @@
                         cargarCursos();
                     })
                     .apiAgregarCurso(nuevoCurso);
-            } else {
-                cursos.push(nuevoCurso);
-                input.value = '';
-                renderCursos();
             }
         }
 
@@ -313,21 +348,31 @@
             }
 
             const optionsHtml = cursos.map(c => `<option value="${c}">${c}</option>`).join('');
-            ['asistencia-curso-select', 'grupo-curso-select', 'estudiante-curso-select'].forEach(id => {
+            ['asistencia-curso-select', 'grupo-curso-select', 'manual-grupo-curso-select', 'estudiante-curso-select'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = optionsHtml;
             });
         }
 
-        // --- ESTUDIANTES (GOOGLE SHEETS) ---
+        // ESTUDIANTES
+        function cargarEstudiantesDesdeSheets() {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(data => {
+                        estudiantes = data || [];
+                        renderEstudiantes();
+                        renderAsistenciaVivo();
+                    })
+                    .apiObtenerEstudiantes();
+            }
+        }
+
         function agregarEstudiante() {
             const nombre = document.getElementById('nombre-estudiante').value.trim();
             const foto = document.getElementById('foto-estudiante-ref').value.trim();
 
             if (!nombre) return alert("Por favor, ingrese el nombre del estudiante.");
             const fotoRef = foto || 'default.jpg';
-
-            const nuevoEstudiante = { nombre: nombre, foto: fotoRef };
 
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
@@ -336,11 +381,7 @@
                         document.getElementById('foto-estudiante-ref').value = '';
                         cargarEstudiantesDesdeSheets();
                     })
-                    .apiAgregarEstudiante(nuevoEstudiante);
-            } else {
-                estudiantes.push({ id: Date.now(), nombre: nombre, foto: fotoRef });
-                renderEstudiantes();
-                renderAsistenciaVivo();
+                    .apiAgregarEstudiante({ nombre: nombre, foto: fotoRef });
             }
         }
 
@@ -351,22 +392,6 @@
                 google.script.run
                     .withSuccessHandler(() => cargarEstudiantesDesdeSheets())
                     .apiEliminarEstudiante(id);
-            } else {
-                estudiantes = estudiantes.filter(e => e.id !== id);
-                renderEstudiantes();
-                renderAsistenciaVivo();
-            }
-        }
-
-        function cargarEstudiantesDesdeSheets() {
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(data => {
-                        estudiantes = data || [];
-                        renderEstudiantes();
-                        renderAsistenciaVivo();
-                    })
-                    .apiObtenerEstudiantes();
             }
         }
 
@@ -388,6 +413,7 @@
             `).join('');
         }
 
+        // ASISTENCIA
         function renderAsistenciaVivo() {
             const tbody = document.getElementById('tabla-asistencia-body');
             if(!tbody) return;
@@ -404,7 +430,6 @@
             `).join('');
         }
 
-        // --- ASISTENCIA ESTUDIANTE Y ADMIN ---
         function marcarTodos(estado) {
             document.querySelectorAll('.check-asistencia').forEach(chk => chk.checked = estado);
         }
@@ -433,51 +458,61 @@
             const curso = document.getElementById('estudiante-curso-select').value;
             if(!chk.checked) return alert("Debe marcar la casilla para confirmar asistencia.");
 
-            const payload = {
-                fecha: new Date().toLocaleString(),
-                curso: curso,
-                registros: [{ nombre: usuarioSesion.nombreEstudiante, asistio: true }]
-            };
-
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler(() => alert("Su asistencia ha sido registrada exitosamente."))
-                    .apiGuardarAsistencia(payload);
-            } else {
-                alert("Asistencia registrada en modo local.");
+                    .apiGuardarAsistencia({
+                        fecha: new Date().toLocaleString(),
+                        curso: curso,
+                        registros: [{ nombre: usuarioSesion.nombreEstudiante, asistio: true }]
+                    });
             }
         }
 
-        // --- GRUPOS ---
-        function cargarGrupoPropioEstudiante() {
+        // GRUPOS
+        function cargarGrupos() {
             if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(grupos => {
-                        const contenedor = document.getElementById('resultado-grupos');
-                        if(!grupos || grupos.length === 0) {
-                            contenedor.innerHTML = `<p class="text-slate-400 italic">No estás asignado a ningún grupo aún.</p>`;
-                            return;
-                        }
-                        contenedor.innerHTML = grupos.map(g => `
-                            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
-                                <h3 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-users"></i> ${g.nombreGrupo} (${g.curso})</h3>
-                                <p class="text-xs text-slate-500 mb-2">Integrantes del grupo:</p>
-                                <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
-                                    ${g.integrantes.map(i => `<li class="${i === usuarioSesion.nombreEstudiante ? 'font-bold text-indigo-900' : ''}">${i}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `).join('');
-                    })
-                    .apiObtenerGrupoEstudiante(usuarioSesion.nombreEstudiante);
+                if (usuarioSesion.rol === 'Admin') {
+                    google.script.run
+                        .withSuccessHandler(grupos => renderGruposVista(grupos))
+                        .apiObtenerTodosGrupos();
+                } else {
+                    google.script.run
+                        .withSuccessHandler(grupos => renderGruposVista(grupos))
+                        .apiObtenerGrupoEstudiante(usuarioSesion.nombreEstudiante);
+                }
             }
+        }
+
+        function renderGruposVista(grupos) {
+            const contenedor = document.getElementById('resultado-grupos');
+            if (!grupos || grupos.length === 0) {
+                contenedor.innerHTML = `<p class="text-slate-400 italic col-span-3">No hay grupos registrados.</p>`;
+                return;
+            }
+            contenedor.innerHTML = grupos.map(g => `
+                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-users"></i> ${g.nombreGrupo} (${g.curso})</h3>
+                    <p class="text-xs text-slate-500 mb-2">Integrantes:</p>
+                    <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
+                        ${g.integrantes.map(i => `<li class="${usuarioSesion && i === usuarioSesion.nombreEstudiante ? 'font-bold text-indigo-900' : ''}">${i}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
         }
 
         function generarGruposAleatorios() {
+            if (estudiantes.length === 0) return alert("No hay estudiantes registrados para armar grupos.");
+
             const curso = document.getElementById('grupo-curso-select').value;
             const min = parseInt(document.getElementById('min-integrantes').value);
             const max = parseInt(document.getElementById('max-integrantes').value);
-            let pool = [...estudiantes.map(e => e.nombre)];
+            
+            if (isNaN(min) || isNaN(max) || min < 1 || max < min) {
+                return alert("Por favor revise los rangos del tamaño de grupos.");
+            }
 
+            let pool = [...estudiantes.map(e => e.nombre)];
             for (let i = pool.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -485,27 +520,44 @@
 
             let grupos = [];
             let idx = 1;
-            while(pool.length > 0) {
+            while (pool.length > 0) {
                 let size = Math.floor(Math.random() * (max - min + 1)) + min;
-                if(pool.length < size) size = pool.length;
+                if (pool.length < size) size = pool.length;
                 grupos.push({ nombre: `Grupo ${idx++}`, integrantes: pool.splice(0, size) });
             }
 
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
-                    .withSuccessHandler(() => alert("¡Grupos guardados en Google Sheets!"))
+                    .withSuccessHandler(() => {
+                        alert("¡Grupos aleatorios guardados exitosamente!");
+                        cargarGrupos();
+                    })
                     .apiGuardarGrupos({ curso: curso, grupos: grupos });
             }
         }
 
-        // --- FUNCIONES COMUNES ---
-        function cambiarTab(id) {
-            ['estudiantes', 'asistencia', 'grupos'].forEach(t => {
-                const el = document.getElementById(`tab-${t}`);
-                if(el) el.classList.add('hidden');
-            });
-            const target = document.getElementById(`tab-${id}`);
-            if(target) target.classList.remove('hidden');
+        function crearGrupoManual() {
+            const curso = document.getElementById('manual-grupo-curso-select').value;
+            const nombre = document.getElementById('manual-nombre-grupo').value.trim();
+            const integrantesRaw = document.getElementById('manual-integrantes-grupo').value.trim();
+
+            if (!nombre || !integrantesRaw) return alert("Complete el nombre del grupo y los integrantes.");
+
+            const integrantesArr = integrantesRaw.split(',').map(s => s.trim()).filter(s => s !== "");
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => {
+                        alert("¡Grupo manual creado y guardado exitosamente!");
+                        document.getElementById('manual-nombre-grupo').value = '';
+                        document.getElementById('manual-integrantes-grupo').value = '';
+                        cargarGrupos();
+                    })
+                    .apiGuardarGrupos({
+                        curso: curso,
+                        grupos: [{ nombre: nombre, integrantes: integrantesArr }]
+                    });
+            }
         }
 
         function fijarHoraActual() {
