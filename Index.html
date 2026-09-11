@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Integral de Aula</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Pantalla de Login -->
+    <div id="pantalla-login" class="flex-1 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 w-full max-w-md space-y-6">
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl mb-2">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">Acceso al Sistema</h1>
+                <p class="text-xs text-slate-500">Ingrese sus credenciales registradas en Google Sheets</p>
+            </div>
+
+            <form onsubmit="ejecutarLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
+                    <input type="text" id="login-user" required class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                    <input type="password" id="login-pass" required class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                </button>
+            </form>
+            <div id="login-error" class="hidden text-rose-500 text-xs text-center font-medium bg-rose-50 p-2 rounded-lg"></div>
+        </div>
+    </div>
+
+    <!-- Panel Principal (Oculto antes de autenticar) -->
+    <div id="panel-principal" class="hidden flex-1 flex flex-col">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-graduation-cap"></i> <span id="header-titulo">Panel de Aula</span>
+                    </h1>
+                    <span id="badge-rol" class="text-xs bg-indigo-800 px-2.5 py-1 rounded-full font-semibold"></span>
+                </div>
+                
+                <!-- Navegación por pestañas -->
+                <nav class="flex items-center gap-2">
+                    <div id="nav-tabs" class="flex gap-2 bg-indigo-700 p-1 rounded-lg">
+                        <button onclick="cambiarTab('estudiantes')" id="btn-estudiantes" class="solo-admin px-3 py-1.5 rounded-md font-medium text-xs bg-white text-indigo-600 shadow transition">Estudiantes & Cursos</button>
+                        <button onclick="cambiarTab('asistencia')" id="btn-asistencia" class="px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Asistencia</button>
+                        <button onclick="cambiarTab('grupos')" id="btn-grupos" class="px-3 py-1.5 rounded-md font-medium text-xs text-white hover:bg-indigo-600 transition">Grupos</button>
+                    </div>
+                    <button onclick="cerrarSesion()" title="Cerrar Sesión" class="bg-indigo-800 hover:bg-indigo-900 text-white p-2 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-1">
+
+            <!-- SECCIÓN 1: ESTUDIANTES Y CURSOS (EXCLUSIVO ADMIN) -->
+            <section id="tab-estudiantes" class="solo-admin space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-book-open"></i> Gestión de Cursos / Asignaturas</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="nuevo-curso-input" placeholder="Nombre del curso (ej. Matemáticas, Física)" class="flex-1 border border-slate-300 rounded-lg px-4 py-2 outline-none text-sm">
+                        <button onclick="agregarCurso()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium">Añadir Curso</button>
+                    </div>
+                    <div id="lista-cursos-chips" class="flex flex-wrap gap-2 pt-2"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-semibold mb-4 text-indigo-900"><i class="fa-solid fa-user-plus"></i> Registro de Estudiante</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
+                            <input type="text" id="nombre-estudiante" placeholder="Nombre completo del estudiante" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre o Referencia de la Imagen</label>
+                            <input type="text" id="foto-estudiante-ref" placeholder="Ej: foto_juan_perez.jpg o Foto_01" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
+                        </div>
+                        <button onclick="agregarEstudiante()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg transition shadow">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Estudiante
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-semibold mb-4 text-indigo-900"><i class="fa-solid fa-users"></i> Listado General (<span id="total-estudiantes">0</span>)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-500 text-sm">
+                                    <th class="py-3 px-4">Ref. Imagen</th>
+                                    <th class="py-3 px-4">Nombre</th>
+                                    <th class="py-3 px-4 text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-estudiantes-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: ASISTENCIA -->
+            <section id="tab-asistencia" class="space-y-6">
+                <!-- VISTA ADMIN: Lista completa de asistencia -->
+                <div class="solo-admin bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-clipboard-user"></i> Control de Asistencia General</h2>
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                            <button onclick="marcarTodos(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium">Marcar Todos</button>
+                            <button onclick="marcarTodos(false)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium">Desmarcar Todos</button>
+                            <button onclick="guardarAsistencia()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow">Guardar en Sheet</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Curso asociado</label>
+                            <select id="asistencia-curso-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Fecha y Hora</label>
+                            <input type="datetime-local" id="asistencia-custom-datetime" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto pt-4">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-500 text-sm">
+                                    <th class="py-3 px-4">Estudiante</th>
+                                    <th class="py-3 px-4 text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-asistencia-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VISTA ESTUDIANTE: Auto-registro de asistencia -->
+                <div class="solo-estudiante bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-user-check"></i> Registrar Mi Asistencia</h2>
+                    <p class="text-sm text-slate-500">Marque la casilla y confirme su asistencia para la sesión de hoy.</p>
+                    
+                    <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-lg space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Seleccionar Curso</label>
+                            <select id="estudiante-curso-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none bg-white"></select>
+                        </div>
+                        <div class="flex items-center gap-3 pt-2">
+                            <input type="checkbox" id="chk-mi-asistencia" class="w-5 h-5 text-indigo-600 rounded">
+                            <label for="chk-mi-asistencia" class="text-sm font-medium text-slate-700">Confirmo que me encuentro presente</label>
+                        </div>
+                        <button onclick="guardarMiAsistenciaEstudiante()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition shadow">
+                            Registrar Mi Asistencia
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: GRUPOS -->
+            <section id="tab-grupos" class="space-y-6">
+                <!-- VISTA ADMIN: Generador de grupos -->
+                <div class="solo-admin bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-lg font-semibold text-indigo-900"><i class="fa-solid fa-object-group"></i> Generador de Grupos</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Curso</label>
+                            <select id="grupo-curso-select" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Mínimo integrantes</label>
+                            <input type="number" id="min-integrantes" value="2" min="1" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Máximo integrantes</label>
+                            <input type="number" id="max-integrantes" value="4" min="1" class="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none">
+                        </div>
+                    </div>
+                    <button onclick="generarGruposAleatorios()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg transition shadow">
+                        Generar y Guardar Grupos
+                    </button>
+                </div>
+
+                <!-- CONTENEDOR RESULTADOS (Admin ve todos, Estudiante solo el suyo) -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-semibold text-indigo-900 mb-4"><i class="fa-solid fa-users-rectangle"></i> Grupos Asignados</h2>
+                    <div id="resultado-grupos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        let usuarioSesion = null;
+        let estudiantes = [];
+        let cursos = JSON.parse(localStorage.getItem('delegado_cursos')) || ['General'];
+
+        // --- AUTENTICACIÓN ---
+        function ejecutarLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            const errDiv = document.getElementById('login-error');
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(res => {
+                        if (res.exito) {
+                            usuarioSesion = res;
+                            iniciarPanel();
+                        } else {
+                            errDiv.innerText = res.mensaje;
+                            errDiv.classList.remove('hidden');
+                        }
+                    })
+                    .apiLogin(user, pass);
+            } else {
+                // Modo simulado local
+                usuarioSesion = { usuario: user, nombreEstudiante: user, rol: user === 'admin' ? 'Admin' : 'Estudiante' };
+                iniciarPanel();
+            }
+        }
+
+        function iniciarPanel() {
+            document.getElementById('pantalla-login').classList.add('hidden');
+            document.getElementById('panel-principal').classList.remove('hidden');
+
+            document.getElementById('header-titulo').innerText = `Hola, ${usuarioSesion.nombreEstudiante}`;
+            document.getElementById('badge-rol').innerText = usuarioSesion.rol;
+
+            if (usuarioSesion.rol === 'Admin') {
+                document.querySelectorAll('.solo-estudiante').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.solo-admin').forEach(el => el.classList.remove('hidden'));
+                cambiarTab('estudiantes');
+            } else {
+                document.querySelectorAll('.solo-admin').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.solo-estudiante').forEach(el => el.classList.remove('hidden'));
+                cambiarTab('asistencia');
+                cargarGrupoPropioEstudiante();
+            }
+
+            cargarEstudiantesDesdeSheets();
+            renderCursos();
+            fijarHoraActual();
+        }
+
+        function cerrarSesion() {
+            usuarioSesion = null;
+            document.getElementById('panel-principal').classList.add('hidden');
+            document.getElementById('pantalla-login').classList.remove('hidden');
+        }
+
+        // --- ASISTENCIA ESTUDIANTE ---
+        function guardarMiAsistenciaEstudiante() {
+            const chk = document.getElementById('chk-mi-asistencia');
+            const curso = document.getElementById('estudiante-curso-select').value;
+            if(!chk.checked) return alert("Debe marcar la casilla para confirmar asistencia.");
+
+            const payload = {
+                fecha: new Date().toLocaleString(),
+                curso: curso,
+                registros: [{ nombre: usuarioSesion.nombreEstudiante, asistio: true }]
+            };
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => alert("Su asistencia ha sido registrada exitosamente."))
+                    .apiGuardarAsistencia(payload);
+            } else {
+                alert("Asistencia registrada en modo local.");
+            }
+        }
+
+        // --- GRUPOS ESTUDIANTE ---
+        function cargarGrupoPropioEstudiante() {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(grupos => {
+                        const contenedor = document.getElementById('resultado-grupos');
+                        if(!grupos || grupos.length === 0) {
+                            contenedor.innerHTML = `<p class="text-slate-400 italic">No estás asignado a ningún grupo aún.</p>`;
+                            return;
+                        }
+                        contenedor.innerHTML = grupos.map(g => `
+                            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
+                                <h3 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-users"></i> ${g.nombreGrupo} (${g.curso})</h3>
+                                <p class="text-xs text-slate-500 mb-2">Integrantes del grupo:</p>
+                                <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
+                                    ${g.integrantes.map(i => `<li class="${i === usuarioSesion.nombreEstudiante ? 'font-bold text-indigo-900' : ''}">${i}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `).join('');
+                    })
+                    .apiObtenerGrupoEstudiante(usuarioSesion.nombreEstudiante);
+            }
+        }
+
+        // --- FUNCIONES COMUNES ---
+        function cambiarTab(id) {
+            ['estudiantes', 'asistencia', 'grupos'].forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                if(el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`tab-${id}`);
+            if(target) target.classList.remove('hidden');
+        }
+
+        function cargarEstudiantesDesdeSheets() {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(data => {
+                        estudiantes = data || [];
+                        renderEstudiantes();
+                        renderAsistenciaVivo();
+                    })
+                    .apiObtenerEstudiantes();
+            }
+        }
+
+        function fijarHoraActual() {
+            const ahora = new Date();
+            ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+            const input = document.getElementById('asistencia-custom-datetime');
+            if(input) input.value = ahora.toISOString().slice(0,16);
+        }
+
+        function renderCursos() {
+            const optionsHtml = cursos.map(c => `<option value="${c}">${c}</option>`).join('');
+            ['asistencia-curso-select', 'grupo-curso-select', 'estudiante-curso-select'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.innerHTML = optionsHtml;
+            });
+        }
+
+        function renderEstudiantes() {
+            const tbody = document.getElementById('tabla-estudiantes-body');
+            const total = document.getElementById('total-estudiantes');
+            if(total) total.innerText = estudiantes.length;
+            if(!tbody) return;
+            tbody.innerHTML = estudiantes.map(e => `
+                <tr class="border-b border-slate-100">
+                    <td class="py-3 px-4"><span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded text-xs font-mono border">${e.foto}</span></td>
+                    <td class="py-3 px-4 font-medium text-slate-700">${e.nombre}</td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="eliminarEstudiante(${e.id})" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAsistenciaVivo() {
+            const tbody = document.getElementById('tabla-asistencia-body');
+            if(!tbody) return;
+            tbody.innerHTML = estudiantes.map(e => `
+                <tr class="border-b border-slate-100">
+                    <td class="py-3 px-4 font-medium text-slate-700">${e.nombre}</td>
+                    <td class="py-3 px-4 text-center">
+                        <input type="checkbox" data-id="${e.id}" class="check-asistencia w-5 h-5 text-indigo-600 rounded" checked>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function guardarAsistencia() {
+            const curso = document.getElementById('asistencia-curso-select').value;
+            const customDateInput = document.getElementById('asistencia-custom-datetime').value;
+            const fechaVal = customDateInput ? new Date(customDateInput).toLocaleString() : new Date().toLocaleString();
+            
+            const registros = [];
+            document.querySelectorAll('.check-asistencia').forEach(chk => {
+                const id = parseInt(chk.getAttribute('data-id'));
+                const estudiante = estudiantes.find(e => e.id === id);
+                if(estudiante) registros.push({ nombre: estudiante.nombre, asistio: chk.checked });
+            });
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => alert("¡Asistencia guardada exitosamente!"))
+                    .apiGuardarAsistencia({ fecha: fechaVal, curso: curso, registros: registros });
+            }
+        }
+
+        function generarGruposAleatorios() {
+            const curso = document.getElementById('grupo-curso-select').value;
+            const min = parseInt(document.getElementById('min-integrantes').value);
+            const max = parseInt(document.getElementById('max-integrantes').value);
+            let pool = [...estudiantes.map(e => e.nombre)];
+
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+
+            let grupos = [];
+            let idx = 1;
+            while(pool.length > 0) {
+                let size = Math.floor(Math.random() * (max - min + 1)) + min;
+                if(pool.length < size) size = pool.length;
+                grupos.push({ nombre: `Grupo ${idx++}`, integrantes: pool.splice(0, size) });
+            }
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => alert("¡Grupos guardados en Google Sheets!"))
+                    .apiGuardarGrupos({ curso: curso, grupos: grupos });
+            }
+        }
+    </script>
+</body>
+</html>
