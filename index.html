@@ -210,7 +210,7 @@
     <script>
         let usuarioSesion = null;
         let estudiantes = [];
-        let cursos = JSON.parse(localStorage.getItem('delegado_cursos')) || ['General'];
+        let cursos = ['General'];
 
         // --- AUTENTICACIÓN ---
         function ejecutarLogin(e) {
@@ -257,7 +257,7 @@
             }
 
             cargarEstudiantesDesdeSheets();
-            renderCursos();
+            cargarCursos();
             fijarHoraActual();
         }
 
@@ -267,59 +267,95 @@
             document.getElementById('pantalla-login').classList.remove('hidden');
         }
 
-        // --- ASISTENCIA ESTUDIANTE ---
-        function guardarMiAsistenciaEstudiante() {
-            const chk = document.getElementById('chk-mi-asistencia');
-            const curso = document.getElementById('estudiante-curso-select').value;
-            if(!chk.checked) return alert("Debe marcar la casilla para confirmar asistencia.");
-
-            const payload = {
-                fecha: new Date().toLocaleString(),
-                curso: curso,
-                registros: [{ nombre: usuarioSesion.nombreEstudiante, asistio: true }]
-            };
-
+        // --- CURSOS (GOOGLE SHEETS) ---
+        function cargarCursos() {
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
-                    .withSuccessHandler(() => alert("Su asistencia ha sido registrada exitosamente."))
-                    .apiGuardarAsistencia(payload);
-            } else {
-                alert("Asistencia registrada en modo local.");
-            }
-        }
-
-        // --- GRUPOS ESTUDIANTE ---
-        function cargarGrupoPropioEstudiante() {
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(grupos => {
-                        const contenedor = document.getElementById('resultado-grupos');
-                        if(!grupos || grupos.length === 0) {
-                            contenedor.innerHTML = `<p class="text-slate-400 italic">No estás asignado a ningún grupo aún.</p>`;
-                            return;
-                        }
-                        contenedor.innerHTML = grupos.map(g => `
-                            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
-                                <h3 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-users"></i> ${g.nombreGrupo} (${g.curso})</h3>
-                                <p class="text-xs text-slate-500 mb-2">Integrantes del grupo:</p>
-                                <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
-                                    ${g.integrantes.map(i => `<li class="${i === usuarioSesion.nombreEstudiante ? 'font-bold text-indigo-900' : ''}">${i}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `).join('');
+                    .withSuccessHandler(data => {
+                        cursos = data && data.length > 0 ? data : ['General'];
+                        renderCursos();
                     })
-                    .apiObtenerGrupoEstudiante(usuarioSesion.nombreEstudiante);
+                    .apiObtenerCursos();
+            } else {
+                renderCursos();
             }
         }
 
-        // --- FUNCIONES COMUNES ---
-        function cambiarTab(id) {
-            ['estudiantes', 'asistencia', 'grupos'].forEach(t => {
-                const el = document.getElementById(`tab-${t}`);
-                if(el) el.classList.add('hidden');
+        function agregarCurso() {
+            const input = document.getElementById('nuevo-curso-input');
+            const nuevoCurso = input.value.trim();
+            if (!nuevoCurso) return alert("Ingrese el nombre del curso.");
+
+            if (cursos.includes(nuevoCurso)) return alert("El curso ya existe.");
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => {
+                        input.value = '';
+                        cargarCursos();
+                    })
+                    .apiAgregarCurso(nuevoCurso);
+            } else {
+                cursos.push(nuevoCurso);
+                input.value = '';
+                renderCursos();
+            }
+        }
+
+        function renderCursos() {
+            const chipsDiv = document.getElementById('lista-cursos-chips');
+            if (chipsDiv) {
+                chipsDiv.innerHTML = cursos.map(c => `
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-3 py-1 rounded-full border border-indigo-200">
+                        ${c}
+                    </span>
+                `).join('');
+            }
+
+            const optionsHtml = cursos.map(c => `<option value="${c}">${c}</option>`).join('');
+            ['asistencia-curso-select', 'grupo-curso-select', 'estudiante-curso-select'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = optionsHtml;
             });
-            const target = document.getElementById(`tab-${id}`);
-            if(target) target.classList.remove('hidden');
+        }
+
+        // --- ESTUDIANTES (GOOGLE SHEETS) ---
+        function agregarEstudiante() {
+            const nombre = document.getElementById('nombre-estudiante').value.trim();
+            const foto = document.getElementById('foto-estudiante-ref').value.trim();
+
+            if (!nombre) return alert("Por favor, ingrese el nombre del estudiante.");
+            const fotoRef = foto || 'default.jpg';
+
+            const nuevoEstudiante = { nombre: nombre, foto: fotoRef };
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => {
+                        document.getElementById('nombre-estudiante').value = '';
+                        document.getElementById('foto-estudiante-ref').value = '';
+                        cargarEstudiantesDesdeSheets();
+                    })
+                    .apiAgregarEstudiante(nuevoEstudiante);
+            } else {
+                estudiantes.push({ id: Date.now(), nombre: nombre, foto: fotoRef });
+                renderEstudiantes();
+                renderAsistenciaVivo();
+            }
+        }
+
+        function eliminarEstudiante(id) {
+            if (!confirm("¿Está seguro de que desea eliminar a este estudiante?")) return;
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => cargarEstudiantesDesdeSheets())
+                    .apiEliminarEstudiante(id);
+            } else {
+                estudiantes = estudiantes.filter(e => e.id !== id);
+                renderEstudiantes();
+                renderAsistenciaVivo();
+            }
         }
 
         function cargarEstudiantesDesdeSheets() {
@@ -334,21 +370,6 @@
             }
         }
 
-        function fijarHoraActual() {
-            const ahora = new Date();
-            ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
-            const input = document.getElementById('asistencia-custom-datetime');
-            if(input) input.value = ahora.toISOString().slice(0,16);
-        }
-
-        function renderCursos() {
-            const optionsHtml = cursos.map(c => `<option value="${c}">${c}</option>`).join('');
-            ['asistencia-curso-select', 'grupo-curso-select', 'estudiante-curso-select'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.innerHTML = optionsHtml;
-            });
-        }
-
         function renderEstudiantes() {
             const tbody = document.getElementById('tabla-estudiantes-body');
             const total = document.getElementById('total-estudiantes');
@@ -361,7 +382,7 @@
                     </td>
                     <td class="py-3 px-4 font-medium text-slate-700">${e.nombre}</td>
                     <td class="py-3 px-4 text-right">
-                        <button onclick="eliminarEstudiante(${e.id})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="eliminarEstudiante('${e.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -383,6 +404,11 @@
             `).join('');
         }
 
+        // --- ASISTENCIA ESTUDIANTE Y ADMIN ---
+        function marcarTodos(estado) {
+            document.querySelectorAll('.check-asistencia').forEach(chk => chk.checked = estado);
+        }
+
         function guardarAsistencia() {
             const curso = document.getElementById('asistencia-curso-select').value;
             const customDateInput = document.getElementById('asistencia-custom-datetime').value;
@@ -390,8 +416,8 @@
             
             const registros = [];
             document.querySelectorAll('.check-asistencia').forEach(chk => {
-                const id = parseInt(chk.getAttribute('data-id'));
-                const estudiante = estudiantes.find(e => e.id === id);
+                const id = chk.getAttribute('data-id');
+                const estudiante = estudiantes.find(e => String(e.id) === String(id));
                 if(estudiante) registros.push({ nombre: estudiante.nombre, asistio: chk.checked });
             });
 
@@ -399,6 +425,50 @@
                 google.script.run
                     .withSuccessHandler(() => alert("¡Asistencia guardada exitosamente!"))
                     .apiGuardarAsistencia({ fecha: fechaVal, curso: curso, registros: registros });
+            }
+        }
+
+        function guardarMiAsistenciaEstudiante() {
+            const chk = document.getElementById('chk-mi-asistencia');
+            const curso = document.getElementById('estudiante-curso-select').value;
+            if(!chk.checked) return alert("Debe marcar la casilla para confirmar asistencia.");
+
+            const payload = {
+                fecha: new Date().toLocaleString(),
+                curso: curso,
+                registros: [{ nombre: usuarioSesion.nombreEstudiante, asistio: true }]
+            };
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => alert("Su asistencia ha sido registrada exitosamente."))
+                    .apiGuardarAsistencia(payload);
+            } else {
+                alert("Asistencia registrada en modo local.");
+            }
+        }
+
+        // --- GRUPOS ---
+        function cargarGrupoPropioEstudiante() {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(grupos => {
+                        const contenedor = document.getElementById('resultado-grupos');
+                        if(!grupos || grupos.length === 0) {
+                            contenedor.innerHTML = `<p class="text-slate-400 italic">No estás asignado a ningún grupo aún.</p>`;
+                            return;
+                        }
+                        contenedor.innerHTML = grupos.map(g => `
+                            <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
+                                <h3 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-users"></i> ${g.nombreGrupo} (${g.curso})</h3>
+                                <p class="text-xs text-slate-500 mb-2">Integrantes del grupo:</p>
+                                <ul class="list-disc list-inside text-sm text-slate-700 space-y-1">
+                                    ${g.integrantes.map(i => `<li class="${i === usuarioSesion.nombreEstudiante ? 'font-bold text-indigo-900' : ''}">${i}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `).join('');
+                    })
+                    .apiObtenerGrupoEstudiante(usuarioSesion.nombreEstudiante);
             }
         }
 
@@ -426,6 +496,23 @@
                     .withSuccessHandler(() => alert("¡Grupos guardados en Google Sheets!"))
                     .apiGuardarGrupos({ curso: curso, grupos: grupos });
             }
+        }
+
+        // --- FUNCIONES COMUNES ---
+        function cambiarTab(id) {
+            ['estudiantes', 'asistencia', 'grupos'].forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                if(el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`tab-${id}`);
+            if(target) target.classList.remove('hidden');
+        }
+
+        function fijarHoraActual() {
+            const ahora = new Date();
+            ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+            const input = document.getElementById('asistencia-custom-datetime');
+            if(input) input.value = ahora.toISOString().slice(0,16);
         }
     </script>
 </body>
