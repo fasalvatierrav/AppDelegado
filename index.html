@@ -239,19 +239,17 @@
         let cursos = ['General'];
 
         async function apiCall(accion, datos = {}) {
-            if (APPS_SCRIPT_URL.includes('AKfycbwMkKYqkn6qYl_rvdkUGWrx6pRXqNVda7Ry9bfwadeeWpHtXsrJrL1ayb4nljXh4sGA')) {
-                throw new Error('Configura APPS_SCRIPT_URL con la URL /exec de Apps Script.');
-            }
-
-            const response = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                redirect: 'follow',
-                cache: 'no-store',
-                headers: {
-                    // IMPORTANTE: text/plain evita el preflight CORS de application/json.
-                    'Content-Type': 'text/plain;charset=utf-8'
-                },
-                body: JSON.stringify({ accion, ...datos })
+        try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify({
+                accion: accion,
+                ...datos
+            })
             });
 
             if (!response.ok) {
@@ -259,14 +257,20 @@
             }
 
             const texto = await response.text();
-            try {
-                return JSON.parse(texto);
-            } catch (err) {
-                console.error('Respuesta no JSON:', texto);
-                throw new Error('Apps Script no devolvio JSON valido. Verifica la URL /exec y el despliegue.');
-            }
+            console.log('Respuesta Apps Script:', texto);
+        try {
+            return JSON.parse(texto);
+        } catch (error) {
+            throw new Error(
+                'Apps Script respondió, pero no devolvió JSON válido. Respuesta: ' +
+                texto.substring(0, 300)
+            );
         }
-
+       } catch (error) {
+         console.error('Error apiCall:', error);
+         throw error;
+       }
+         }
         function mensajeError(err) {
             console.error(err);
             return err && err.message ? err.message : String(err);
