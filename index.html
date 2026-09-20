@@ -231,31 +231,67 @@
     </div>
 
     <script>
+        // PEGA AQUI LA URL /exec DE TU IMPLEMENTACION DE APPS SCRIPT
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/REEMPLAZA_CON_TU_DEPLOYMENT_ID/exec';
+
         let usuarioSesion = null;
         let estudiantes = [];
         let cursos = ['General'];
 
-        // AUTENTICACIÓN
-        function ejecutarLogin(e) {
+        async function apiCall(accion, datos = {}) {
+            if (APPS_SCRIPT_URL.includes('REEMPLAZA_CON_TU_DEPLOYMENT_ID')) {
+                throw new Error('Configura APPS_SCRIPT_URL con la URL /exec de Apps Script.');
+            }
+
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                redirect: 'follow',
+                cache: 'no-store',
+                headers: {
+                    // IMPORTANTE: text/plain evita el preflight CORS de application/json.
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify({ accion, ...datos })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const texto = await response.text();
+            try {
+                return JSON.parse(texto);
+            } catch (err) {
+                console.error('Respuesta no JSON:', texto);
+                throw new Error('Apps Script no devolvio JSON valido. Verifica la URL /exec y el despliegue.');
+            }
+        }
+
+        function mensajeError(err) {
+            console.error(err);
+            return err && err.message ? err.message : String(err);
+        }
+
+        // AUTENTICACION
+        async function ejecutarLogin(e) {
             e.preventDefault();
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
             const errDiv = document.getElementById('login-error');
+            errDiv.classList.add('hidden');
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(res => {
-                        if (res.exito) {
-                            usuarioSesion = res;
-                            iniciarPanel();
-                        } else {
-                            errDiv.innerText = res.mensaje;
-                            errDiv.classList.remove('hidden');
-                        }
-                    })
-                    .apiLogin(user, pass);
-            } else {
-                alert("Atención: google.script.run no está disponible. Ejecute este archivo publicado como Aplicación Web en Google Apps Script.");
+            try {
+                const res = await apiCall('login', { user, pass });
+                if (res.exito) {
+                    usuarioSesion = res;
+                    iniciarPanel();
+                } else {
+                    errDiv.innerText = res.mensaje || 'No fue posible iniciar sesion.';
+                    errDiv.classList.remove('hidden');
+                }
+            } catch (err) {
+                errDiv.innerText = 'Error de conexion: ' + mensajeError(err);
+                errDiv.classList.remove('hidden');
             }
         }
 
@@ -276,19 +312,24 @@
                 cambiarTab('asistencia');
             }
 
-            cargarEstudiantesDesdeSheets();
-            cargarCursos();
-            cargarGrupos();
+            Promise.all([
+                cargarEstudiantesDesdeSheets(),
+                cargarCursos(),
+                cargarGrupos()
+            ]).catch(err => alert('Error cargando datos: ' + mensajeError(err)));
             fijarHoraActual();
         }
 
         function cerrarSesion() {
             usuarioSesion = null;
+            estudiantes = [];
+            cursos = ['General'];
             document.getElementById('panel-principal').classList.add('hidden');
             document.getElementById('pantalla-login').classList.remove('hidden');
+            document.getElementById('login-pass').value = '';
         }
 
-        // PESTAÑAS Y NAVEGACIÓN
+        // PESTANAS Y NAVEGACION
         function cambiarTab(id) {
             ['estudiantes', 'asistencia', 'grupos'].forEach(t => {
                 const sec = document.getElementById(`tab-${t}`);
@@ -302,7 +343,6 @@
 
             const targetSec = document.getElementById(`tab-${id}`);
             const targetBtn = document.getElementById(`btn-tab-${id}`);
-
             if (targetSec) targetSec.classList.remove('hidden');
             if (targetBtn) {
                 targetBtn.classList.remove('text-white', 'hover:bg-indigo-600');
@@ -311,29 +351,24 @@
         }
 
         // CURSOS
-        function cargarCursos() {
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(data => {
-                        cursos = data && data.length > 0 ? data : ['General'];
-                        renderCursos();
-                    })
-                    .apiObtenerCursos();
-            }
+        async function cargarCursos() {
+            const data = await apiCall('obtenerCursos');
+            cursos = Array.isArray(data) && data.length > 0 ? data : ['General'];
+            renderCursos();
         }
 
-        function agregarCurso() {
+        async function agregarCurso() {
             const input = document.getElementById('nuevo-curso-input');
             const nuevoCurso = input.value.trim();
-            if (!nuevoCurso) return alert("Ingrese el nombre del curso.");
+            if (!nuevoCurso) return alert('Ingrese el nombre del curso.');
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => {
-                        input.value = '';
-                        cargarCursos();
-                    })
-                    .apiAgregarCurso(nuevoCurso);
+            try {
+                const res = await apiCall('agregarCurso', { nombreCurso: nuevoCurso });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudo agregar el curso.');
+                input.value = '';
+                await cargarCursos();
+            } catch (err) {
+                alert('Error guardando curso: ' + mensajeError(err));
             }
         }
 
@@ -355,51 +390,50 @@
         }
 
         // ESTUDIANTES
-        function cargarEstudiantesDesdeSheets() {
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(data => {
-                        estudiantes = data || [];
-                        renderEstudiantes();
-                        renderAsistenciaVivo();
-                    })
-                    .apiObtenerEstudiantes();
-            }
+        async function cargarEstudiantesDesdeSheets() {
+            const data = await apiCall('obtenerEstudiantes');
+            estudiantes = Array.isArray(data) ? data : [];
+            renderEstudiantes();
+            renderAsistenciaVivo();
         }
 
-        function agregarEstudiante() {
+        async function agregarEstudiante() {
             const nombre = document.getElementById('nombre-estudiante').value.trim();
             const foto = document.getElementById('foto-estudiante-ref').value.trim();
+            if (!nombre) return alert('Por favor, ingrese el nombre del estudiante.');
 
-            if (!nombre) return alert("Por favor, ingrese el nombre del estudiante.");
-            const fotoRef = foto || 'default.jpg';
+            try {
+                const res = await apiCall('agregarEstudiante', {
+                    estudiante: { nombre, foto: foto || 'default.jpg' }
+                });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudo guardar el estudiante.');
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => {
-                        document.getElementById('nombre-estudiante').value = '';
-                        document.getElementById('foto-estudiante-ref').value = '';
-                        cargarEstudiantesDesdeSheets();
-                    })
-                    .apiAgregarEstudiante({ nombre: nombre, foto: fotoRef });
+                document.getElementById('nombre-estudiante').value = '';
+                document.getElementById('foto-estudiante-ref').value = '';
+                await cargarEstudiantesDesdeSheets();
+            } catch (err) {
+                alert('Error guardando estudiante: ' + mensajeError(err));
             }
         }
 
-        function eliminarEstudiante(id) {
-            if (!confirm("¿Está seguro de que desea eliminar a este estudiante?")) return;
+        async function eliminarEstudiante(id) {
+            if (!confirm('¿Esta seguro de que desea eliminar a este estudiante?')) return;
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => cargarEstudiantesDesdeSheets())
-                    .apiEliminarEstudiante(id);
+            try {
+                const res = await apiCall('eliminarEstudiante', { id });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudo eliminar.');
+                await cargarEstudiantesDesdeSheets();
+            } catch (err) {
+                alert('Error eliminando estudiante: ' + mensajeError(err));
             }
         }
 
         function renderEstudiantes() {
             const tbody = document.getElementById('tabla-estudiantes-body');
             const total = document.getElementById('total-estudiantes');
-            if(total) total.innerText = estudiantes.length;
-            if(!tbody) return;
+            if (total) total.innerText = estudiantes.length;
+            if (!tbody) return;
+
             tbody.innerHTML = estudiantes.map(e => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="py-3 px-4">
@@ -416,7 +450,8 @@
         // ASISTENCIA
         function renderAsistenciaVivo() {
             const tbody = document.getElementById('tabla-asistencia-body');
-            if(!tbody) return;
+            if (!tbody) return;
+
             tbody.innerHTML = estudiantes.map(e => `
                 <tr class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="py-3 px-4">
@@ -434,62 +469,69 @@
             document.querySelectorAll('.check-asistencia').forEach(chk => chk.checked = estado);
         }
 
-        function guardarAsistencia() {
+        async function guardarAsistencia() {
             const curso = document.getElementById('asistencia-curso-select').value;
             const customDateInput = document.getElementById('asistencia-custom-datetime').value;
-            const fechaVal = customDateInput ? new Date(customDateInput).toLocaleString() : new Date().toLocaleString();
-            
+            const fechaVal = customDateInput ? new Date(customDateInput).toISOString() : new Date().toISOString();
+
             const registros = [];
             document.querySelectorAll('.check-asistencia').forEach(chk => {
                 const id = chk.getAttribute('data-id');
                 const estudiante = estudiantes.find(e => String(e.id) === String(id));
-                if(estudiante) registros.push({ nombre: estudiante.nombre, asistio: chk.checked });
+                if (estudiante) registros.push({ nombre: estudiante.nombre, asistio: chk.checked });
             });
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => alert("¡Asistencia guardada exitosamente!"))
-                    .apiGuardarAsistencia({ fecha: fechaVal, curso: curso, registros: registros });
+            try {
+                const res = await apiCall('guardarAsistencia', {
+                    payload: { fecha: fechaVal, curso, registros }
+                });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudo guardar la asistencia.');
+                alert('¡Asistencia guardada exitosamente!');
+            } catch (err) {
+                alert('Error guardando asistencia: ' + mensajeError(err));
             }
         }
 
-        function guardarMiAsistenciaEstudiante() {
+        async function guardarMiAsistenciaEstudiante() {
             const chk = document.getElementById('chk-mi-asistencia');
             const curso = document.getElementById('estudiante-curso-select').value;
-            if(!chk.checked) return alert("Debe marcar la casilla para confirmar asistencia.");
+            if (!chk.checked) return alert('Debe marcar la casilla para confirmar asistencia.');
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => alert("Su asistencia ha sido registrada exitosamente."))
-                    .apiGuardarAsistencia({
-                        fecha: new Date().toLocaleString(),
-                        curso: curso,
+            try {
+                const res = await apiCall('guardarAsistencia', {
+                    payload: {
+                        fecha: new Date().toISOString(),
+                        curso,
                         registros: [{ nombre: usuarioSesion.nombreEstudiante, asistio: true }]
-                    });
+                    }
+                });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudo registrar su asistencia.');
+                alert('Su asistencia ha sido registrada exitosamente.');
+            } catch (err) {
+                alert('Error registrando asistencia: ' + mensajeError(err));
             }
         }
 
         // GRUPOS
-        function cargarGrupos() {
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                if (usuarioSesion.rol === 'Admin') {
-                    google.script.run
-                        .withSuccessHandler(grupos => renderGruposVista(grupos))
-                        .apiObtenerTodosGrupos();
-                } else {
-                    google.script.run
-                        .withSuccessHandler(grupos => renderGruposVista(grupos))
-                        .apiObtenerGrupoEstudiante(usuarioSesion.nombreEstudiante);
-                }
-            }
+        async function cargarGrupos() {
+            if (!usuarioSesion) return;
+
+            const grupos = usuarioSesion.rol === 'Admin'
+                ? await apiCall('obtenerTodosGrupos')
+                : await apiCall('obtenerGrupoEstudiante', {
+                    nombreEstudiante: usuarioSesion.nombreEstudiante
+                });
+
+            renderGruposVista(Array.isArray(grupos) ? grupos : []);
         }
 
         function renderGruposVista(grupos) {
             const contenedor = document.getElementById('resultado-grupos');
             if (!grupos || grupos.length === 0) {
-                contenedor.innerHTML = `<p class="text-slate-400 italic col-span-3">No hay grupos registrados.</p>`;
+                contenedor.innerHTML = '<p class="text-slate-400 italic col-span-3">No hay grupos registrados.</p>';
                 return;
             }
+
             contenedor.innerHTML = grupos.map(g => `
                 <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
                     <h3 class="font-bold text-indigo-700 mb-2"><i class="fa-solid fa-users"></i> ${g.nombreGrupo} (${g.curso})</h3>
@@ -501,15 +543,15 @@
             `).join('');
         }
 
-        function generarGruposAleatorios() {
-            if (estudiantes.length === 0) return alert("No hay estudiantes registrados para armar grupos.");
+        async function generarGruposAleatorios() {
+            if (estudiantes.length === 0) return alert('No hay estudiantes registrados para armar grupos.');
 
             const curso = document.getElementById('grupo-curso-select').value;
-            const min = parseInt(document.getElementById('min-integrantes').value);
-            const max = parseInt(document.getElementById('max-integrantes').value);
-            
+            const min = parseInt(document.getElementById('min-integrantes').value, 10);
+            const max = parseInt(document.getElementById('max-integrantes').value, 10);
+
             if (isNaN(min) || isNaN(max) || min < 1 || max < min) {
-                return alert("Por favor revise los rangos del tamaño de grupos.");
+                return alert('Por favor revise los rangos del tamano de grupos.');
             }
 
             let pool = [...estudiantes.map(e => e.nombre)];
@@ -518,7 +560,7 @@
                 [pool[i], pool[j]] = [pool[j], pool[i]];
             }
 
-            let grupos = [];
+            const grupos = [];
             let idx = 1;
             while (pool.length > 0) {
                 let size = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -526,37 +568,36 @@
                 grupos.push({ nombre: `Grupo ${idx++}`, integrantes: pool.splice(0, size) });
             }
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => {
-                        alert("¡Grupos aleatorios guardados exitosamente!");
-                        cargarGrupos();
-                    })
-                    .apiGuardarGrupos({ curso: curso, grupos: grupos });
+            try {
+                const res = await apiCall('guardarGrupos', { payload: { curso, grupos } });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudieron guardar los grupos.');
+                alert('¡Grupos aleatorios guardados exitosamente!');
+                await cargarGrupos();
+            } catch (err) {
+                alert('Error guardando grupos: ' + mensajeError(err));
             }
         }
 
-        function crearGrupoManual() {
+        async function crearGrupoManual() {
             const curso = document.getElementById('manual-grupo-curso-select').value;
             const nombre = document.getElementById('manual-nombre-grupo').value.trim();
             const integrantesRaw = document.getElementById('manual-integrantes-grupo').value.trim();
+            if (!nombre || !integrantesRaw) return alert('Complete el nombre del grupo y los integrantes.');
 
-            if (!nombre || !integrantesRaw) return alert("Complete el nombre del grupo y los integrantes.");
+            const integrantesArr = integrantesRaw.split(',').map(s => s.trim()).filter(Boolean);
 
-            const integrantesArr = integrantesRaw.split(',').map(s => s.trim()).filter(s => s !== "");
+            try {
+                const res = await apiCall('guardarGrupos', {
+                    payload: { curso, grupos: [{ nombre, integrantes: integrantesArr }] }
+                });
+                if (res.exito === false) return alert(res.mensaje || 'No se pudo guardar el grupo.');
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(() => {
-                        alert("¡Grupo manual creado y guardado exitosamente!");
-                        document.getElementById('manual-nombre-grupo').value = '';
-                        document.getElementById('manual-integrantes-grupo').value = '';
-                        cargarGrupos();
-                    })
-                    .apiGuardarGrupos({
-                        curso: curso,
-                        grupos: [{ nombre: nombre, integrantes: integrantesArr }]
-                    });
+                alert('¡Grupo manual creado y guardado exitosamente!');
+                document.getElementById('manual-nombre-grupo').value = '';
+                document.getElementById('manual-integrantes-grupo').value = '';
+                await cargarGrupos();
+            } catch (err) {
+                alert('Error guardando grupo: ' + mensajeError(err));
             }
         }
 
@@ -564,7 +605,7 @@
             const ahora = new Date();
             ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
             const input = document.getElementById('asistencia-custom-datetime');
-            if(input) input.value = ahora.toISOString().slice(0,16);
+            if (input) input.value = ahora.toISOString().slice(0, 16);
         }
     </script>
 </body>
