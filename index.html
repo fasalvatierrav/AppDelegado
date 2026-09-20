@@ -232,14 +232,14 @@
 
     <script>
         // PEGA AQUI LA URL /exec DE TU IMPLEMENTACION DE APPS SCRIPT
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/REEMPLAZA_CON_TU_DEPLOYMENT_ID/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMkKYqkn6qYl_rvdkUGWrx6pRXqNVda7Ry9bfwadeeWpHtXsrJrL1ayb4nljXh4sGA/exec';
 
         let usuarioSesion = null;
         let estudiantes = [];
         let cursos = ['General'];
 
         async function apiCall(accion, datos = {}) {
-            if (APPS_SCRIPT_URL.includes('REEMPLAZA_CON_TU_DEPLOYMENT_ID')) {
+            if (APPS_SCRIPT_URL.includes('AKfycbwMkKYqkn6qYl_rvdkUGWrx6pRXqNVda7Ry9bfwadeeWpHtXsrJrL1ayb4nljXh4sGA')) {
                 throw new Error('Configura APPS_SCRIPT_URL con la URL /exec de Apps Script.');
             }
 
